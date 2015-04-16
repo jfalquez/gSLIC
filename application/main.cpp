@@ -79,7 +79,14 @@ int main(int argc, char** argv)
 
     // Convert to 4 channels, since code expects (in future versions)
     // depth on last channel.
-    cv::cvtColor(image, image, CV_RGB2RGBA);
+    if (image.type() == CV_8UC1) {
+      cv::cvtColor(image, image, CV_GRAY2RGBA);
+    } else if (image.type() == CV_8UC3) {
+      cv::cvtColor(image, image, CV_RGB2RGBA);
+    } else {
+      std::cerr << "Unknown image format. Aborting..." << std::endl;;
+      exit(EXIT_FAILURE);
+    }
 
     // Load image.
     segmenter.LoadImg(image.data);
