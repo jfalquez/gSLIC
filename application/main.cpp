@@ -16,9 +16,6 @@
  * limitations under the License.
  */
 
-#include <Eigen/Eigen>
-#include <sophus/sophus.hpp>
-
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
@@ -32,15 +29,11 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
-#include <calibu/Calibu.h>
 #include <HAL/Utils/GetPot>
 #include <HAL/Camera/CameraDevice.h>
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
-#include <pangolin/pangolin.h>
-#include <SceneGraph/SceneGraph.h>
 
 #include <gSLIC/FastImgSeg.h>
 
@@ -49,6 +42,62 @@
 /////////////////////////////////////////////////////////////////////////////
 int main(int argc, char** argv)
 {
+  GetPot cl_args(argc, argv);
+
+  ///----- Initialize Camera.
+  if (!cl_args.search("-cam")) {
+    std::cerr << "Camera arguments missing!" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  hal::Camera camera(cl_args.follow("", "-cam"));
+
+  const int image_width = camera.Width();
+  const int image_height = camera.Height();
+  std::cout << "- Image Dimensions: " << image_width <<
+               "x" << image_height << std::endl;
+
+  ///----- Initialize gSLIC.
+  const double  weight = 10.0;
+  const int     number_segments = 1000;
+
+  FastImgSeg segmenter;
+
+  segmenter.initializeFastSeg(image_width, image_height, number_segments);
+
+  // Image holder.
+  std::shared_ptr<pb::ImageArray> images = pb::ImageArray::Create();
+
+  /////////////////////////////////////////////////////////////////////////////
+  ///---- MAIN LOOP
+  ///
+  int key = 0;
+  while (key != 27) {
+
+    // Capture new image.
+    camera.Capture(*images);
+    cv::Mat image = images->at(0)->Mat().clone();
+
+    // Convert to 4 channels, since code expects (in future versions)
+    // depth on last channel.
+    cv::cvtColor(image, image, CV_RGB2RGBA);
+
+    // Load image.
+    segmenter.LoadImg(image.data);
+
+    // Segment.
+    segmenter.DoSegmentation(RGB_SLIC, weight);
+
+    // Get marked image.
+    segmenter.Tool_GetMarkedImg();
+    cv::Mat marked_image(image_height, image_width, CV_8UC4, segmenter.markedImg);
+
+    // Show images.
+    cv::imshow("Image", image);
+    cv::imshow("Superpixels", marked_image);
+
+    // Render. If "escape" key pressed, exit.
+    key = cv::waitKey(1e3);
+  }
 
   return 0;
 }
