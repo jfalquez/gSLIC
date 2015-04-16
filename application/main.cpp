@@ -98,6 +98,20 @@ int main(int argc, char** argv)
     segmenter.Tool_GetMarkedImg();
     cv::Mat marked_image(image_height, image_width, CV_8UC4, segmenter.markedImg);
 
+    // Get segmentation mask.
+    cv::Mat mask(image_height, image_width, CV_32SC1, segmenter.segMask);
+
+    // "Color" segment 100 to blue.
+    for (int vv = 0; vv < mask.rows; ++vv) {
+      for (int uu = 0; uu < mask.cols; ++uu) {
+        if (mask.at<int>(vv,uu) == 100) {
+          cv::Vec4b pix;
+          pix.val[0] = 255;
+          marked_image.at<cv::Vec4b>(vv,uu) = pix;
+        }
+      }
+    }
+
     // Show images.
     cv::imshow("Image", image);
     cv::imshow("Superpixels", marked_image);
