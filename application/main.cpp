@@ -65,7 +65,7 @@ int main(int argc, char** argv)
   segmenter.initializeFastSeg(image_width, image_height, number_segments);
 
   // Image holder.
-  std::shared_ptr<pb::ImageArray> images = pb::ImageArray::Create();
+  std::shared_ptr<hal::ImageArray> images = hal::ImageArray::Create();
 
   /////////////////////////////////////////////////////////////////////////////
   ///---- MAIN LOOP
